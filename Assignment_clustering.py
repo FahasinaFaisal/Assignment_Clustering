@@ -18,27 +18,33 @@ data.drop_duplicates(inplace=True)
 
 # Distributions of Features
 for feature in data.drop(columns='class'):
-    plt.figure(figsize=(6, 4)) 
-    sns.histplot(data=data, x=feature, kde=True)  
+    plt.figure(figsize=(6, 4))
+    sns.histplot(data=data, x=feature, kde=True)
     plt.xlabel(f'{feature}')
-    plt.ylabel('Frequency')  
-    plt.title(f'Distribution of {feature}') 
+    plt.ylabel('Frequency')
+    plt.title(f'Distribution of {feature}')
     plt.show()
 
 # Outlier Analysis
-plt.figure(figsize=(6, 4)) 
+plt.figure(figsize=(6, 4))
 sns.boxplot(x=data['sepal_width'])
-plt.title('Box Plot for sepal_width')
+plt.title('Box Plot for Sepal Width')
 plt.show()
 
 # Remove outliers for 'sepal_width'
 lower, upper = data['sepal_width'].quantile([0.02, 0.98]).to_list()
 data = data[data['sepal_width'].between(lower, upper)]
+plt.figure(figsize=(6, 4))
+sns.boxplot(x=data['sepal_width'])
+plt.title('Box Plot for Sepal Width (Outlier Removed)')
+plt.show()
 
 # Scatter Plot
 plt.figure(figsize=(10, 5))
-sns.scatterplot(data=data, x='sepal_length', y='sepal_width', hue='class')
-plt.title('Scatter Plot: Sepal Length vs Sepal Width')
+sns.scatterplot(data=data, x='petal_length',y='petal_width', hue='class')
+plt.title('Effect of class and corelation between petal width and petal length');
+plt.xlabel('Sepal Length')
+plt.ylabel('Sepal Width')
 plt.show()
 
 # Correlation between features
@@ -49,7 +55,7 @@ sns.heatmap(correlation, annot=True, cmap='YlGnBu')
 plt.title('Correlation Heatmap')
 plt.show()
 
-# Splitting data
+# Splitting Data
 target = 'class'
 X = data.drop(columns=target)
 y = data[target]
@@ -60,6 +66,7 @@ k_means = Pipeline([
     ('kmeans', KMeans(n_clusters=3, random_state=42))
 ])
 
+# Model Training
 k_means.fit(X)
 labels = k_means.named_steps['kmeans'].labels_
 centroids = k_means.named_steps['kmeans'].cluster_centers_
@@ -72,8 +79,9 @@ plt.figure(figsize=(8, 6))
 sns.scatterplot(x=X_transformed[:, 1], y=X_transformed[:, 2], hue=labels, palette='deep')
 plt.scatter(x=centroids[:, 1], y=centroids[:, 2], color='gray', marker='*', s=150)
 plt.title('K-Means Clustering: Sepal Width vs Sepal Length')
+plt.xlabel('Scaled Sepal Width')
+plt.ylabel('Scaled Sepal Length')
 plt.show()
-
 
 # Plot 2D scatter plot using PCA
 pca = PCA(n_components=2)
@@ -87,11 +95,10 @@ plt.ylabel('PC2')
 plt.title("PCA Plot: Clustering by K-Means")
 plt.show()
 
-# Building KNN Model
+# Building KNN model
 encoder = LabelEncoder()
 y = encoder.fit_transform(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
 knn = Pipeline([
     ('scaler', MinMaxScaler()),
     ('knn', KNeighborsClassifier(n_neighbors=3))
@@ -119,7 +126,7 @@ best_knn = grid_search.best_estimator_
 # Best model choosing
 best_knn.fit(X_train, y_train)
 
-# Model Evaluation
+# Model evaluation
 y_train_pred = best_knn.predict(X_train)
 print("Training Accuracy:", accuracy_score(y_train, y_train_pred))
 
