@@ -7,29 +7,45 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay, classification_report
+from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay
 
 def load_and_preprocess_data(file_path):
     """
-    Load the data from a CSV file, rename the 'species' column to 'class', and remove duplicates.
+    Load and preprocess data from a CSV file.
 
     Parameters:
     - file_path (str): Path to the CSV file.
 
     Returns:
-    - pd.DataFrame: Processed DataFrame.
+    - data (pd.DataFrame): Preprocessed DataFrame.
     """
     data = pd.read_csv(file_path)
-    data.rename(columns={'species': 'class'}, inplace=True)
+    if 'species' in data.columns:
+        data.rename(columns={'species': 'class'}, inplace=True)
     data.drop_duplicates(inplace=True)
     return data
 
-def visualize_feature_distributions(data):
+def clean_and_transpose_data(data):
     """
-    Visualize the distributions of features using histograms.
+    Clean and transpose the input data.
 
     Parameters:
-    - data (pd.DataFrame): DataFrame containing the data.
+    - data (pd.DataFrame): Input DataFrame.
+
+    Returns:
+    - cleaned_data (pd.DataFrame): Cleaned DataFrame.
+    - transposed_data (pd.DataFrame): Transposed DataFrame.
+    """
+    cleaned_data = data.dropna()
+    transposed_data = cleaned_data.transpose()
+    return cleaned_data, transposed_data
+
+def visualize_feature_distributions(data):
+    """
+    Visualize feature distributions.
+
+    Parameters:
+    - data (pd.DataFrame): Input DataFrame.
     """
     for feature in data.drop(columns='class'):
         plt.figure(figsize=(6, 4))
@@ -41,45 +57,67 @@ def visualize_feature_distributions(data):
 
 def analyze_outliers(data, feature):
     """
-    Analyze and visualize outliers for a specific feature using boxplots.
+    Analyze outliers for a specific feature.
 
     Parameters:
-    - data (pd.DataFrame): DataFrame containing the data.
-    - feature (str): Feature for outlier analysis.
+    - data (pd.DataFrame): Input DataFrame.
+    - feature (str): Name of the feature to analyze.
     """
-    plt.figure(figsize=(6, 4))
-    sns.boxplot(x=data[feature])
-    plt.title(f'Box Plot for {feature}')
-    plt.show()
+    if feature in data.columns:
+        plt.figure(figsize=(6, 4))
+        sns.boxplot(x=data[feature])
+        plt.title(f'Box Plot for {feature}')
+        plt.show()
+    else:
+        print(f"Warning: Feature '{feature}' not found in the dataframe.")
 
-    # Remove outliers
-    lower, upper = data[feature].quantile([0.02, 0.98]).to_list()
-    data = data[data[feature].between(lower, upper)]
+def remove_outliers(data, feature):
+    """
+    Remove outliers for a specific feature.
 
-    plt.figure(figsize=(6, 4))
-    sns.boxplot(x=data[feature])
-    plt.title(f'Box Plot for {feature} (Outlier Removed)')
-    plt.show()
+    Parameters:
+    - data (pd.DataFrame): Input DataFrame.
+    - feature (str): Name of the feature to remove outliers from.
 
-def scatter_plot(x, y, hue, title, data):
+    Returns:
+    - data (pd.DataFrame): DataFrame after removing outliers.
+    """
+    if feature in data.columns:
+        lower, upper = data[feature].quantile([0.02, 0.98]).to_list()
+        return data[data[feature].between(lower, upper)]
+    else:
+        print(f"Warning: Feature '{feature}' not found in the dataframe.")
+        return data
+
+def scatter_plot(x, y, hue, title, data, xlabel='', ylabel=''):
     """
     Create a scatter plot.
 
     Parameters:
-    - x, y, hue, title (str): Plotting parameters.
-    - data (pd.DataFrame): DataFrame containing the data.
+    - x (str): Name of the feature for the x-axis.
+    - y (str): Name of the feature for the y-axis.
+    - hue (str): Name of the feature for coloring.
+    - title (str): Title of the plot.
+    - data (pd.DataFrame): Input DataFrame.
+    - xlabel (str, optional): Label for the x-axis. Defaults to an empty string.
+    - ylabel (str, optional): Label for the y-axis. Defaults to an empty string.
     """
-    plt.figure(figsize=(10, 5))
-    sns.scatterplot(data=data, x=x, y=y, hue=hue)
-    plt.title(title)
-    plt.show()
+    if x in data.columns and y in data.columns:
+        plt.figure(figsize=(10, 5))
+        sns.scatterplot(data=data, x=x, y=y, hue=hue)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.show()
+    else:
+        print(f"Warning: One or more specified features not found in the dataframe.")
 
 def visualize_correlation(data):
     """
-    Visualize the correlation between features using a heatmap.
+    Visualize correlation heatmap.
 
     Parameters:
-    - data (pd.DataFrame): DataFrame containing the data.
+    - data (pd.DataFrame): Input DataFrame.
     """
     correlation = data.drop(columns='class').corr()
     plt.figure(figsize=(8, 6))
@@ -87,29 +125,14 @@ def visualize_correlation(data):
     plt.title('Correlation Heatmap')
     plt.show()
 
-def create_k_means_pipeline(n_clusters=3):
-    """
-    Create a K-Means clustering pipeline.
-
-    Parameters:
-    - n_clusters (int): Number of clusters for K-Means.
-
-    Returns:
-    - Pipeline: K-Means clustering pipeline.
-    """
-    return Pipeline([
-        ('scaler', MinMaxScaler()),
-        ('kmeans', KMeans(n_clusters=n_clusters, random_state=42))
-    ])
-
 def visualize_k_means_clusters(X_transformed, labels, centroids):
     """
-    Visualize K-Means clustering results using a scatter plot.
+    Visualize K-Means clusters.
 
     Parameters:
-    - X_transformed (np.ndarray): Transformed data using MinMaxScaler.
-    - labels (np.ndarray): Cluster labels.
-    - centroids (np.ndarray): Cluster centroids.
+    - X_transformed (array-like): Transformed data.
+    - labels (array-like): Cluster labels.
+    - centroids (array-like): Cluster centroids.
     """
     plt.figure(figsize=(8, 6))
     sns.scatterplot(x=X_transformed[:, 1], y=X_transformed[:, 2], hue=labels, palette='deep')
@@ -121,11 +144,11 @@ def visualize_k_means_clusters(X_transformed, labels, centroids):
 
 def visualize_pca_plot(X_pca, labels):
     """
-    Visualize a 2D scatter plot using PCA.
+    Visualize PCA plot.
 
     Parameters:
-    - X_pca (np.ndarray): Transformed data using PCA.
-    - labels (np.ndarray): Cluster labels.
+    - X_pca (array-like): PCA-transformed data.
+    - labels (array-like): Labels for coloring.
     """
     plt.figure(figsize=(8, 6))
     color_palette = sns.color_palette('tab10', n_colors=len(set(labels)))
@@ -135,33 +158,30 @@ def visualize_pca_plot(X_pca, labels):
     plt.title("PCA Plot: Clustering by K-Means")
     plt.show()
 
-def build_knn_model(X_train, y_train):
+def build_knn_model():
     """
     Build a KNN model using a pipeline.
 
-    Parameters:
-    - X_train, y_train (pd.DataFrame, np.ndarray): Training data and labels.
-
     Returns:
-    - Pipeline: KNN model pipeline.
+    - model (Pipeline): KNN model.
     """
-    knn = Pipeline([
+    return Pipeline([
         ('scaler', MinMaxScaler()),
         ('knn', KNeighborsClassifier(n_neighbors=3))
     ])
-    return knn
 
 def perform_grid_search(knn, X_train, y_train):
     """
     Perform grid search for hyperparameter tuning.
 
     Parameters:
-    - knn (Pipeline): KNN model pipeline.
-    - X_train, y_train (pd.DataFrame, np.ndarray): Training data and labels.
+    - knn (Pipeline): KNN model.
+    - X_train (array-like): Training data.
+    - y_train (array-like): Training labels.
 
     Returns:
-    - Pipeline: Best KNN model from grid search.
-    - dict: Best hyperparameters.
+    - best_knn (Pipeline): Best KNN model.
+    - best_params (dict): Best hyperparameters.
     """
     param_grid = {
         'knn__n_neighbors': [3, 5, 7, 9],
@@ -176,34 +196,37 @@ def perform_grid_search(knn, X_train, y_train):
 
 def evaluate_model(model, X_train, y_train, X_test, y_test):
     """
-    Evaluate the model and display performance metrics.
+    Evaluate the KNN model.
 
     Parameters:
-    - model (Pipeline): Trained model.
-    - X_train, y_train (pd.DataFrame, np.ndarray): Training data and labels.
-    - X_test, y_test (pd.DataFrame, np.ndarray): Test data and labels.
+    - model (Pipeline): KNN model.
+    - X_train (array-like): Training data.
+    - y_train (array-like): Training labels.
+    - X_test (array-like): Testing data.
+    - y_test (array-like): Testing labels.
     """
-    # Training accuracy
     y_train_pred = model.predict(X_train)
     print("Training Accuracy:", accuracy_score(y_train, y_train_pred))
 
-    # Confusion Matrix Display for Training Data
     disp_train = ConfusionMatrixDisplay.from_estimator(model, X_train, y_train, colorbar=False, cmap='viridis')
     plt.title('Confusion Matrix - Training Data')
     plt.show()
 
-    # Confusion Matrix Display for Test Data
     disp_test = ConfusionMatrixDisplay.from_estimator(model, X_test, y_test, colorbar=False, cmap='viridis')
     plt.title('Confusion Matrix - Test Data')
     plt.show()
 
-    # Test accuracy and classification report
+    # Get predictions for the test set
     y_test_pred = model.predict(X_test)
-    print(classification_report(y_test, y_test_pred))
 
-    # Scatter plot for KNN Classification on Test Data
+    # Assuming X_test is a NumPy array
     plt.figure(figsize=(8, 6))
-    sns.scatterplot(x=X_test['petal_length'], y=X_test['petal_width'], hue=y_test_pred, palette='coolwarm')
+    
+    # Assuming 'petal_length' and 'petal_width' are the first two columns in X_test
+    petal_length_idx = 0
+    petal_width_idx = 1
+    
+    sns.scatterplot(x=X_test[:, petal_length_idx], y=X_test[:, petal_width_idx], hue=y_test_pred, palette='coolwarm')
     plt.xlabel('Petal Length')
     plt.ylabel('Petal Width')
     plt.title('KNN Classification for Test Data')
@@ -211,11 +234,11 @@ def evaluate_model(model, X_train, y_train, X_test, y_test):
 
 def visualize_pca_original_classes(X_pca, y):
     """
-    Visualize a 2D scatter plot using PCA with original class labels.
+    Visualize PCA plot for original classes.
 
     Parameters:
-    - X_pca (np.ndarray): Transformed data using PCA.
-    - y (np.ndarray): Original class labels.
+    - X_pca (array-like): PCA-transformed data.
+    - y (array-like): Original labels for coloring.
     """
     plt.figure(figsize=(8, 6))
     sns.scatterplot(x=X_pca[:, 0], y=X_pca[:, 1], hue=y, palette='summer')
@@ -224,46 +247,55 @@ def visualize_pca_original_classes(X_pca, y):
     plt.title('Iris data in 2D Using PCA Labeled by Original Classes')
     plt.show()
 
-
 # Load and preprocess data
 file_path = 'IRIS.csv'
 data = load_and_preprocess_data(file_path)
 
+# Clean and transpose the data
+cleaned_data, transposed_data = clean_and_transpose_data(data)
+
 # Visualize feature distributions
-visualize_feature_distributions(data)
+visualize_feature_distributions(cleaned_data)
 
 # Analyze outliers for 'sepal_width'
-analyze_outliers(data, 'sepal_width')
+analyze_outliers(cleaned_data, 'sepal_width')
+
+# Remove outliers for 'sepal_width'
+cleaned_data = remove_outliers(cleaned_data, 'sepal_width')
 
 # Scatter Plots
-scatter_plot('sepal_length', 'sepal_width', 'class', 'Effect of class and correlation between sepal length and sepal width', data)
-scatter_plot('petal_length', 'petal_width', 'class', 'Effect of class and correlation between petal width and petal length', data)
+scatter_plot('sepal_length', 'sepal_width', 'class', 'Effect of class and correlation between sepal length and sepal width', cleaned_data, xlabel='Sepal Length', ylabel='Sepal Width')
+scatter_plot('petal_length', 'petal_width', 'class', 'Effect of class and correlation between petal width and petal length', cleaned_data, xlabel='Petal Length', ylabel='Petal Width')
 
 # Visualize correlation between features
-visualize_correlation(data)
+visualize_correlation(cleaned_data)
 
 # Splitting Data
 target = 'class'
-X = data.drop(columns=target)
-y = data[target]
+X = cleaned_data.drop(columns=target)
+y = cleaned_data[target]
+
+# Normalize the data
+scaler = MinMaxScaler()
+X_normalized = scaler.fit_transform(X)
 
 # Model Building - K Means
-k_means = create_k_means_pipeline(n_clusters=3)
+k_means = Pipeline([
+    ('scaler', MinMaxScaler()),
+    ('kmeans', KMeans(n_clusters=2, random_state=42))
+])
 
-# Model Training - K Means
-k_means.fit(X)
+# Model Training
+k_means.fit(X_normalized)
 labels = k_means.named_steps['kmeans'].labels_
 centroids = k_means.named_steps['kmeans'].cluster_centers_
 
-# Transform X using the scaler
-X_transformed = k_means.named_steps['scaler'].fit_transform(X)
-
 # Visualize K-Means Clustering
-visualize_k_means_clusters(X_transformed, labels, centroids)
+visualize_k_means_clusters(X_normalized, labels, centroids)
 
 # Plot 2D scatter plot using PCA
 pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X)
+X_pca = pca.fit_transform(X_normalized)
 
 # Visualize PCA Plot
 visualize_pca_plot(X_pca, labels)
@@ -271,8 +303,8 @@ visualize_pca_plot(X_pca, labels)
 # Building KNN model
 encoder = LabelEncoder()
 y = encoder.fit_transform(y)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-knn = build_knn_model(X_train, y_train)
+X_train, X_test, y_train, y_test = train_test_split(X_normalized, y, test_size=0.2, random_state=42, stratify=y)
+knn = build_knn_model()
 
 # Perform Grid Search for hyperparameter tuning
 best_knn, best_params = perform_grid_search(knn, X_train, y_train)
