@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay, silhouette_score
 
 def load_and_preprocess_data(file_path):
     """
@@ -286,9 +286,14 @@ k_means = Pipeline([
 ])
 
 # Model Training
+X_normalized = scaler.fit_transform(X)
 k_means.fit(X_normalized)
 labels = k_means.named_steps['kmeans'].labels_
 centroids = k_means.named_steps['kmeans'].cluster_centers_
+
+# Calculate silhouette score
+silhouette_avg = silhouette_score(X_normalized, labels)
+print(f"Silhouette Score for K-Means Clustering: {silhouette_avg}")
 
 # Visualize K-Means Clustering
 visualize_k_means_clusters(X_normalized, labels, centroids)
