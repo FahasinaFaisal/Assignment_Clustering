@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, ConfusionMatrixDisplay, silhouette_score
 
 def load_and_preprocess_data(file_path):
     """
@@ -221,11 +221,11 @@ def evaluate_model(model, X_train, y_train, X_test, y_test):
 
     # Assuming X_test is a NumPy array
     plt.figure(figsize=(8, 6))
-    
+
     # Assuming 'petal_length' and 'petal_width' are the first two columns in X_test
     petal_length_idx = 0
     petal_width_idx = 1
-    
+
     sns.scatterplot(x=X_test[:, petal_length_idx], y=X_test[:, petal_width_idx], hue=y_test_pred, palette='coolwarm')
     plt.xlabel('Petal Length')
     plt.ylabel('Petal Width')
@@ -285,10 +285,15 @@ k_means = Pipeline([
     ('kmeans', KMeans(n_clusters=2, random_state=42))
 ])
 
-# Model Training
+# Model Training - K Means
+X_normalized = scaler.fit_transform(X)
 k_means.fit(X_normalized)
 labels = k_means.named_steps['kmeans'].labels_
 centroids = k_means.named_steps['kmeans'].cluster_centers_
+
+# Calculate silhouette score
+silhouette_avg = silhouette_score(X_normalized, labels)
+print(f"Silhouette Score for K-Means Clustering: {silhouette_avg}")
 
 # Visualize K-Means Clustering
 visualize_k_means_clusters(X_normalized, labels, centroids)
